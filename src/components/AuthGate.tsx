@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { setUserScope } from "@/lib/lsStore";
+import { startSettingsSync, stopSettingsSync } from "@/lib/settingsSync";
 import { Loader2 } from "lucide-react";
 
 type AuthStatus = "loading" | "signed-in" | "signed-out";
@@ -17,18 +18,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       if (!active) return;
       if (data.session?.user) {
         setUserScope(data.session.user.id);
+        void startSettingsSync(data.session.user.id);
         setStatus("signed-in");
       } else {
         setUserScope(null);
+        stopSettingsSync();
         setStatus("signed-out");
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       if (session?.user) {
         setUserScope(session.user.id);
+        void startSettingsSync(session.user.id);
         setStatus("signed-in");
       } else {
         setUserScope(null);
+        stopSettingsSync();
         setStatus("signed-out");
       }
     });

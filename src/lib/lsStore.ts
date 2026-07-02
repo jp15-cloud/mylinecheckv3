@@ -37,6 +37,24 @@ function safe(): Storage | null {
   }
 }
 
+type WriteHook = (key: string, value: string | null) => void;
+const writeHooks = new Set<WriteHook>();
+
+export function onLocalWrite(fn: WriteHook) {
+  writeHooks.add(fn);
+  return () => writeHooks.delete(fn);
+}
+
+function notifyWrite(key: string, value: string | null) {
+  for (const fn of writeHooks) {
+    try {
+      fn(key, value);
+    } catch {
+      // ignore hook errors
+    }
+  }
+}
+
 export const lsStore = {
   getItem(key: string) {
     const s = safe();
@@ -45,8 +63,19 @@ export const lsStore = {
   setItem(key: string, value: string) {
     const s = safe();
     if (s) s.setItem(scopedKey(key), value);
+    notifyWrite(key, value);
   },
   removeItem(key: string) {
+    const s = safe();
+    if (s) s.removeItem(scopedKey(key));
+    notifyWrite(key, null);
+  },
+  /** Local-only write that does NOT notify sync hooks (used when hydrating from cloud). */
+  setItemLocal(key: string, value: string) {
+    const s = safe();
+    if (s) s.setItem(scopedKey(key), value);
+  },
+  removeItemLocal(key: string) {
     const s = safe();
     if (s) s.removeItem(scopedKey(key));
   },
