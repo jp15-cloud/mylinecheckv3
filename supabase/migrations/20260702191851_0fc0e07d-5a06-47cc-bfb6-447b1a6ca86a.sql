@@ -1,0 +1,1 @@
+ALTER FUNCTION public.update_user_settings_updated_at() SECURITY INVOKER;
