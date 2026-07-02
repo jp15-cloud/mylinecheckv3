@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { setUserScope } from "@/lib/lsStore";
+import { startSettingsSync, stopSettingsSync } from "@/lib/settingsSync";
 import { Loader2 } from "lucide-react";
 
 type AuthStatus = "loading" | "signed-in" | "signed-out";
