@@ -14,59 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
-      shared_shifts: {
-        Row: {
-          brand_name: string
-          created_at: string
-          date: string
-          id: string
-          member: string | null
-          owner_id: string
-          payload: Json
-          shift: string
-          updated_at: string
-        }
-        Insert: {
-          brand_name?: string
-          created_at?: string
-          date: string
-          id?: string
-          member?: string | null
-          owner_id: string
-          payload: Json
-          shift: string
-          updated_at?: string
-        }
-        Update: {
-          brand_name?: string
-          created_at?: string
-          date?: string
-          id?: string
-          member?: string | null
-          owner_id?: string
-          payload?: Json
-          shift?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_shared_shift: {
-        Args: { _id: string }
-        Returns: {
-          brand_name: string
-          date: string
-          id: string
-          member: string
-          payload: Json
-          shift: string
-          updated_at: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
