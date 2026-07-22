@@ -15,6 +15,7 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Check,
   Image as ImageIcon,
   Upload,
@@ -311,6 +312,9 @@ function StationsPanel() {
 
   useEffect(() => {
     lsStore.setItem(STATIONS_KEY, JSON.stringify(stations));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("linecheck:stations-update"));
+    }
   }, [stations]);
 
   const add = () => {
@@ -324,6 +328,15 @@ function StationsPanel() {
     setStations((s) => [{ name: n.toUpperCase(), icon: nextIcon, items: [] }, ...s]);
     setName("");
   };
+
+  const move = (i: number, dir: -1 | 1) =>
+    setStations((s) => {
+      const j = i + dir;
+      if (j < 0 || j >= s.length) return s;
+      const next = [...s];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   return (
     <div>
@@ -360,6 +373,25 @@ function StationsPanel() {
                 >
                   {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
+
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => move(idx, -1)}
+                    disabled={idx === 0}
+                    className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                    aria-label="Move station up"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => move(idx, 1)}
+                    disabled={idx === stations.length - 1}
+                    className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                    aria-label="Move station down"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
 
                 <IconPicker
                   value={st.icon}

@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 
-const SLOTS: Slot[] = ["op", "mid", "cl"];
+const SLOTS: Slot[] = ["op", "cl"];
 
 const searchSchema = z.object({
   date: z.string(),

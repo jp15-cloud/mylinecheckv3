@@ -16,6 +16,63 @@ export const STATUSES = data.statuses;
 export const STAFF = data.staff;
 export const SECTIONS = data.sections.filter((s) => s.items.length > 0);
 
+/** Custom per-section item struct persisted from the section edit UI. */
+type StructItem = { name: string };
+type StructCat = { group: string; items: StructItem[] };
+function loadStruct(name: string): StructCat[] | null {
+  try {
+    const raw = lsStore.getItem(`linecheck:section-items:${name}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as StructCat[];
+  } catch {}
+  return null;
+}
+
+/** List of station names, taking user overrides from Settings into account. */
+export function getStationNames(): string[] {
+  try {
+    const raw = lsStore.getItem("linecheck:settings:stations");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const names = parsed
+          .map((s: { name?: unknown }) => (typeof s?.name === "string" ? s.name : null))
+          .filter((n): n is string => !!n);
+        if (names.length) return names;
+      }
+    }
+  } catch {}
+  return SECTIONS.map((s) => s.name);
+}
+
+/** Item names for a station, taking user overrides from Settings + section edits into account. */
+export function getStationItemNames(name: string): string[] {
+  const struct = loadStruct(name);
+  if (struct && struct.length) {
+    return struct.flatMap((c) => c.items.map((i) => i.name)).filter(Boolean);
+  }
+  try {
+    const raw = lsStore.getItem("linecheck:settings:stations");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const found = parsed.find(
+          (s: { name?: unknown }) => typeof s?.name === "string" && s.name === name,
+        );
+        if (found && Array.isArray(found.items)) {
+          const names = found.items
+            .map((i: { name?: unknown }) => (typeof i?.name === "string" ? i.name : null))
+            .filter((n: string | null): n is string => !!n);
+          if (names.length) return names;
+        }
+      }
+    }
+  } catch {}
+  const sec = SECTIONS.find((s) => s.name === name);
+  return sec ? sec.items.map((i) => i.name) : [];
+}
+
 export const FLAG_STATUSES = new Set([
   "ABOUT TO EXPIRE",
   "EXPIRED",
@@ -118,23 +175,21 @@ export function loadSection(name: string, date = todayISO()): SectionState {
 
 export function defaultShift(): Slot {
   const h = new Date().getHours();
-  if (h < 11) return "op";
-  if (h < 17) return "mid";
+  if (h < 14) return "op";
   return "cl";
 }
 
 export function sectionProgress(name: string, slot: Slot, date = todayISO()) {
-  const sec = SECTIONS.find((s) => s.name === name);
-  if (!sec) return { done: 0, total: 0, flagged: 0 };
+  const items = getStationItemNames(name);
   const state = loadSection(name, date);
   let done = 0;
   let flagged = 0;
-  for (const item of sec.items) {
-    const e = state.entries[item.name]?.[slot];
+  for (const itemName of items) {
+    const e = state.entries[itemName]?.[slot];
     if (e?.status) done++;
     if (e?.status && FLAG_STATUSES.has(e.status)) flagged++;
   }
-  return { done, total: sec.items.length, flagged };
+  return { done, total: items.length, flagged };
 }
 
 export type FlaggedRow = {

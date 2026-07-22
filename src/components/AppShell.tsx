@@ -2,9 +2,9 @@ import { lsStore } from "@/lib/lsStore";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  SECTIONS,
   STAFF,
   defaultShift,
+  getStationNames,
   sectionProgress,
   todayISO,
   type Slot,
@@ -30,8 +30,6 @@ import {
   Snowflake,
   Beer,
   LogOut,
-  Moon,
-  Sun,
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -52,7 +50,6 @@ const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>>
 
 const SHIFT_OPTIONS: { value: Slot; label: string }[] = [
   { value: "op", label: "Opening" },
-  { value: "mid", label: "Mid" },
   { value: "cl", label: "Closing" },
 ];
 
@@ -100,15 +97,22 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
   const [collapsed, setCollapsed] = useState(false);
   // Recompute progress on date/shift change and on storage updates
   const [tick, setTick] = useState(0);
+  const [stationNames, setStationNames] = useState<string[]>(() => getStationNames());
   useEffect(() => {
-    const fn = () => setTick((t) => t + 1);
+    const fn = () => {
+      setStationNames(getStationNames());
+      setTick((t) => t + 1);
+    };
+    fn();
     window.addEventListener("storage", fn);
     window.addEventListener("linecheck:update", fn);
     window.addEventListener("linecheck:scope-change", fn);
+    window.addEventListener("linecheck:stations-update", fn);
     return () => {
       window.removeEventListener("storage", fn);
       window.removeEventListener("linecheck:update", fn);
       window.removeEventListener("linecheck:scope-change", fn);
+      window.removeEventListener("linecheck:stations-update", fn);
     };
   }, []);
 
@@ -124,7 +128,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
         </Link>
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="rounded-md p-1 text-muted-foreground hover:bg-sidebar-accent"
+          className="rounded-md p-1 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           aria-label="Toggle sidebar"
         >
           <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
@@ -139,33 +143,33 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
 
       <div className="mt-4 flex-1 overflow-y-auto px-3 pb-6" data-tick={tick}>
         {!collapsed && (
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/60">
             Stations
           </p>
         )}
         <ul className="space-y-0.5">
-          {SECTIONS.map((s) => {
-            const Icon = SECTION_ICONS[s.name] ?? Utensils;
-            const { done, total } = sectionProgress(s.name, shift, date);
+          {stationNames.map((sName) => {
+            const Icon = SECTION_ICONS[sName] ?? Utensils;
+            const { done, total } = sectionProgress(sName, shift, date);
             const pct = total ? Math.round((done / total) * 100) : 0;
-            const active = loc.pathname === `/section/${encodeURIComponent(s.name)}`;
+            const active = loc.pathname === `/section/${encodeURIComponent(sName)}`;
             return (
-              <li key={s.name}>
+              <li key={sName}>
                 <Link
                   to="/section/$name"
-                  params={{ name: s.name }}
+                  params={{ name: sName }}
                   className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                     active
-                      ? "bg-sidebar-accent text-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {!collapsed && (
                     <>
-                      <span className="truncate">{s.name}</span>
+                      <span className="truncate">{sName}</span>
                       <span className="ml-auto flex items-center gap-2" suppressHydrationWarning>
-                        <span className="h-1 w-10 overflow-hidden rounded-full bg-muted">
+                        <span className="h-1 w-10 overflow-hidden rounded-full bg-sidebar-accent">
                           <span
                             className="block h-full"
                             style={{
@@ -174,7 +178,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
                             }}
                           />
                         </span>
-                        <span className="w-7 text-right text-[10px] tabular-nums text-muted-foreground">
+                        <span className="w-7 text-right text-[10px] tabular-nums text-sidebar-foreground/60">
                           {pct}%
                         </span>
                       </span>
@@ -212,13 +216,13 @@ function SignOutButton({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="border-t border-sidebar-border px-3 py-3">
       {!collapsed && email && (
-        <p className="mb-2 truncate px-2 text-[10px] text-muted-foreground" title={email}>
+        <p className="mb-2 truncate px-2 text-[10px] text-sidebar-foreground/60" title={email}>
           {email}
         </p>
       )}
       <button
         onClick={handle}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
       >
         <LogOut className="h-4 w-4" />
         {!collapsed && <span>Sign out</span>}
@@ -244,10 +248,10 @@ function NavItem({
 }) {
   const cls = `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
     active
-      ? "bg-foreground text-background"
+      ? "bg-sidebar-primary text-sidebar-primary-foreground"
       : disabled
-        ? "text-muted-foreground/50 cursor-not-allowed"
-        : "text-foreground hover:bg-sidebar-accent"
+        ? "text-sidebar-foreground/40 cursor-not-allowed"
+        : "text-sidebar-foreground hover:bg-sidebar-accent"
   }`;
   if (disabled) {
     return (
@@ -316,35 +320,8 @@ function TopBar({
         <Pill icon={<User className="h-3.5 w-3.5" />}>
           <TeamMemberSelect value={member} onChange={setMember} />
         </Pill>
-        <ThemeToggle />
       </div>
     </header>
-  );
-}
-
-function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-  }, []);
-  const toggle = () => {
-    const next = !isDark;
-    setIsDark(next);
-    const root = document.documentElement;
-    if (next) root.classList.add("dark");
-    else root.classList.remove("dark");
-    try {
-      localStorage.setItem("linecheck:theme", next ? "dark" : "light");
-    } catch {}
-  };
-  return (
-    <button
-      onClick={toggle}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-    >
-      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </button>
   );
 }
 

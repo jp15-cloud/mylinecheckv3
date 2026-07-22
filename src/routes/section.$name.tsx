@@ -144,6 +144,12 @@ function SectionPage() {
     [name, shell.date, shell.shift],
   );
   const [state, setState] = useState<SectionState>(() => loadSection(name, shell.date));
+  // Guards cross-section leakage: when `key` changes (navigating between
+  // sections or dates), setState from the load-effect below is async, so a
+  // naive save-effect would flush the previous section's `state` under the
+  // NEW section's key — making same-named items appear auto-checked in the
+  // other section. We only write once state has been reloaded for this key.
+  const loadedKeyRef = useRef<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [flaggedOnly, setFlaggedOnly] = useState(false);
@@ -220,6 +226,7 @@ function SectionPage() {
 
   useEffect(() => {
     setState(loadSection(name, shell.date));
+    loadedKeyRef.current = null;
   }, [name, shell.date]);
 
   useEffect(() => {
@@ -229,6 +236,12 @@ function SectionPage() {
   }, [name, defaultStruct]);
 
   useEffect(() => {
+    if (loadedKeyRef.current !== key) {
+      // First pass after key change: mark as loaded for this key without
+      // writing (state here may still be the previous section's snapshot).
+      loadedKeyRef.current = key;
+      return;
+    }
     try {
       lsStore.setItem(key, JSON.stringify(state));
       window.dispatchEvent(new Event("linecheck:update"));
