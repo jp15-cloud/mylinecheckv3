@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   SECTIONS,
   FLAG_STATUSES,
@@ -45,33 +44,42 @@ function SharedView() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    supabase
-      .rpc("get_shared_shift", { _id: id })
-      .then(({ data: rows, error: err }) => {
+    fetch(`/api/public/shared-shift/${id}`)
+      .then(async (res) => {
         if (!active) return;
-        const row = Array.isArray(rows) ? rows[0] : null;
-        if (err) {
-          setError(err.message);
-        } else if (!row) {
+        if (res.status === 404) {
           setError("This share link no longer exists.");
-        } else {
-          const parsed = sharedShiftPayloadSchema.safeParse(row.payload);
-          if (!parsed.success) {
-            console.error("[shared shift] invalid payload", parsed.error);
-            setError("This shared shift is incomplete or corrupted.");
-          } else {
-            setData({
-              payload: parsed.data,
-              updated_at: row.updated_at ?? new Date().toISOString(),
-            });
-          }
+          setLoading(false);
+          return;
         }
+        if (!res.ok) {
+          setError("Failed to load shared shift.");
+          setLoading(false);
+          return;
+        }
+        const row = await res.json();
+        const parsed = sharedShiftPayloadSchema.safeParse(row.payload);
+        if (!parsed.success) {
+          console.error("[shared shift] invalid payload", parsed.error);
+          setError("This shared shift is incomplete or corrupted.");
+        } else {
+          setData({
+            payload: parsed.data,
+            updated_at: row.updated_at ?? new Date().toISOString(),
+          });
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("Failed to load shared shift.");
         setLoading(false);
       });
     return () => {
       active = false;
     };
   }, [id]);
+
 
   const grouped = useMemo(() => {
     if (!data) return [];

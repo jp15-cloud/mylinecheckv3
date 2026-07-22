@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_shared_shift(uuid) FROM PUBLIC, anon, authenticated;

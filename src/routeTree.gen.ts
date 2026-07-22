@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SectionNameRouteImport } from './routes/section.$name'
 import { Route as SIdRouteImport } from './routes/s.$id'
 import { Route as HistoryShiftRouteImport } from './routes/history.shift'
+import { Route as ApiPublicSharedShiftIdRouteImport } from './routes/api/public/shared-shift.$id'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -52,6 +53,11 @@ const HistoryShiftRoute = HistoryShiftRouteImport.update({
   path: '/shift',
   getParentRoute: () => HistoryRoute,
 } as any)
+const ApiPublicSharedShiftIdRoute = ApiPublicSharedShiftIdRouteImport.update({
+  id: '/api/public/shared-shift/$id',
+  path: '/api/public/shared-shift/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/history/shift': typeof HistoryShiftRoute
   '/s/$id': typeof SIdRoute
   '/section/$name': typeof SectionNameRoute
+  '/api/public/shared-shift/$id': typeof ApiPublicSharedShiftIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/history/shift': typeof HistoryShiftRoute
   '/s/$id': typeof SIdRoute
   '/section/$name': typeof SectionNameRoute
+  '/api/public/shared-shift/$id': typeof ApiPublicSharedShiftIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/history/shift': typeof HistoryShiftRoute
   '/s/$id': typeof SIdRoute
   '/section/$name': typeof SectionNameRoute
+  '/api/public/shared-shift/$id': typeof ApiPublicSharedShiftIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/history/shift'
     | '/s/$id'
     | '/section/$name'
+    | '/api/public/shared-shift/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/history/shift'
     | '/s/$id'
     | '/section/$name'
+    | '/api/public/shared-shift/$id'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/history/shift'
     | '/s/$id'
     | '/section/$name'
+    | '/api/public/shared-shift/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SIdRoute: typeof SIdRoute
   SectionNameRoute: typeof SectionNameRoute
+  ApiPublicSharedShiftIdRoute: typeof ApiPublicSharedShiftIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryShiftRouteImport
       parentRoute: typeof HistoryRoute
     }
+    '/api/public/shared-shift/$id': {
+      id: '/api/public/shared-shift/$id'
+      path: '/api/public/shared-shift/$id'
+      fullPath: '/api/public/shared-shift/$id'
+      preLoaderRoute: typeof ApiPublicSharedShiftIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -192,6 +212,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SIdRoute: SIdRoute,
   SectionNameRoute: SectionNameRoute,
+  ApiPublicSharedShiftIdRoute: ApiPublicSharedShiftIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
