@@ -5,6 +5,49 @@
 import { supabase } from "@/integrations/supabase/client";
 import { lsStore, onLocalWrite } from "@/lib/lsStore";
 
+export type SyncStatus =
+  | "idle"
+  | "signed-out"
+  | "syncing"
+  | "saving"
+  | "saved"
+  | "received"
+  | "error";
+
+export interface SyncState {
+  status: SyncStatus;
+  lastSavedAt: number | null;
+  lastReceivedAt: number | null;
+  error: string | null;
+}
+
+const SYNC_STATE_EVENT = "linecheck:sync-state";
+let syncState: SyncState = {
+  status: "signed-out",
+  lastSavedAt: null,
+  lastReceivedAt: null,
+  error: null,
+};
+
+function setSyncState(patch: Partial<SyncState>) {
+  syncState = { ...syncState, ...patch };
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<SyncState>(SYNC_STATE_EVENT, { detail: syncState }),
+    );
+  }
+}
+
+export function getSyncState(): SyncState {
+  return syncState;
+}
+
+export function onSyncState(cb: (s: SyncState) => void): () => void {
+  const handler = (e: Event) => cb((e as CustomEvent<SyncState>).detail);
+  window.addEventListener(SYNC_STATE_EVENT, handler);
+  return () => window.removeEventListener(SYNC_STATE_EVENT, handler);
+}
+
 const SYNC_PREFIXES = [
   "linecheck:settings:",
   "linecheck:section-items:",
@@ -69,13 +112,19 @@ function applyRemote(data: Record<string, string> | null) {
 async function pushSnapshot() {
   if (!currentUserId) return;
   const snap = collectLocalSettings();
+  setSyncState({ status: "saving", error: null });
   const { error } = await supabase
     .from("user_settings")
     .upsert(
       { user_id: currentUserId, data: snap, updated_at: new Date().toISOString() },
       { onConflict: "user_id" },
     );
-  if (error) console.warn("[settingsSync] push failed", error.message);
+  if (error) {
+    console.warn("[settingsSync] push failed", error.message);
+    setSyncState({ status: "error", error: error.message });
+    return;
+  }
+  setSyncState({ status: "saved", lastSavedAt: Date.now(), error: null });
 }
 
 function scheduleFlush() {
@@ -89,6 +138,7 @@ function scheduleFlush() {
 
 async function pullSnapshot() {
   if (!currentUserId) return;
+  setSyncState({ status: "syncing", error: null });
   const { data, error } = await supabase
     .from("user_settings")
     .select("data")
@@ -96,10 +146,12 @@ async function pullSnapshot() {
     .maybeSingle();
   if (error) {
     console.warn("[settingsSync] pull failed", error.message);
+    setSyncState({ status: "error", error: error.message });
     return;
   }
   if (data?.data && typeof data.data === "object") {
     applyRemote(data.data as Record<string, string>);
+    setSyncState({ status: "saved", lastReceivedAt: Date.now(), error: null });
   } else {
     // First device for this account: seed the cloud with whatever is local.
     await pushSnapshot();
@@ -124,7 +176,14 @@ function subscribeRealtime() {
       },
       (payload) => {
         const next = (payload.new as { data?: Record<string, string> } | null)?.data;
-        if (next) applyRemote(next);
+        if (next) {
+          applyRemote(next);
+          setSyncState({
+            status: "received",
+            lastReceivedAt: Date.now(),
+            error: null,
+          });
+        }
       },
     )
     .subscribe();
@@ -135,6 +194,7 @@ export async function startSettingsSync(userId: string) {
   stopSettingsSync();
   currentUserId = userId;
 
+  setSyncState({ status: "syncing", error: null });
   await pullSnapshot();
   subscribeRealtime();
 
@@ -158,4 +218,10 @@ export function stopSettingsSync() {
     realtimeChannel = null;
   }
   currentUserId = null;
+  setSyncState({
+    status: "signed-out",
+    lastSavedAt: null,
+    lastReceivedAt: null,
+    error: null,
+  });
 }

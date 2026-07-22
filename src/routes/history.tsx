@@ -165,7 +165,6 @@ function HistoryPage() {
             options={[
               { value: "ALL", label: "All Shifts" },
               { value: "op", label: "Opening" },
-              { value: "mid", label: "Mid" },
               { value: "cl", label: "Closing" },
             ]}
           />

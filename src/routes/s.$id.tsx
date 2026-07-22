@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+
 import {
   SECTIONS,
   FLAG_STATUSES,
@@ -17,6 +18,7 @@ import {
   Calendar,
   Clock,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/s/$id")({
@@ -192,66 +194,10 @@ function SharedView() {
             No items recorded for this shift.
           </div>
         ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {grouped.map((r) => {
-              const flaggedCount = r.items.filter((i) => i.flagged).length;
-              const okCount = r.items.length - flaggedCount;
-              return (
-                <section
-                  key={r.section}
-                  className="flex flex-col rounded-2xl border border-border bg-card p-4"
-                >
-                  <header className="mb-3 flex items-center gap-2 border-b border-border/60 pb-2">
-                    <h3 className="min-w-0 flex-1 truncate text-sm font-black uppercase tracking-wider">
-                      {r.section}
-                    </h3>
-                    {okCount > 0 && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success">
-                        <CheckCircle2 className="h-3 w-3" /> {okCount}
-                      </span>
-                    )}
-                    {flaggedCount > 0 && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-bold text-danger">
-                        <AlertTriangle className="h-3 w-3" /> {flaggedCount}
-                      </span>
-                    )}
-                  </header>
-                  <ul className="space-y-2">
-                    {r.items.map((it) => (
-                      <li
-                        key={it.item}
-                        className={`rounded-xl border p-2.5 ${
-                          it.flagged ? "border-rose-200 bg-rose-50/40" : "border-border bg-background/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">{it.item}</p>
-                            {it.note && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">{it.note}</p>
-                            )}
-                          </div>
-                          <span
-                            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                              it.flagged
-                                ? "bg-danger-soft text-danger"
-                                : "bg-success-soft text-success"
-                            }`}
-                          >
-                            {it.flagged ? (
-                              <AlertTriangle className="h-3 w-3" />
-                            ) : (
-                              <CheckCircle2 className="h-3 w-3" />
-                            )}
-                            {it.status}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              );
-            })}
+          <div className="mt-6 space-y-2">
+            {grouped.map((r) => (
+              <SectionAccordion key={r.section} section={r.section} items={r.items} />
+            ))}
           </div>
         )}
 
@@ -279,5 +225,84 @@ function Stat({
       </p>
       <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+function SectionAccordion({
+  section,
+  items,
+}: {
+  section: string;
+  items: { item: string; status: string; note: string; flagged: boolean }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const flaggedCount = items.filter((i) => i.flagged).length;
+  const okCount = items.length - flaggedCount;
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-accent/40"
+      >
+        <h3 className="min-w-0 flex-1 truncate text-sm font-black uppercase tracking-wider">
+          {section}
+        </h3>
+        <span className="shrink-0 text-[10px] font-bold text-muted-foreground">
+          {items.length}
+        </span>
+        {okCount > 0 && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success">
+            <CheckCircle2 className="h-3 w-3" /> {okCount}
+          </span>
+        )}
+        {flaggedCount > 0 && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-bold text-danger">
+            <AlertTriangle className="h-3 w-3" /> {flaggedCount}
+          </span>
+        )}
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {open && (
+        <ul className="space-y-2 border-t border-border/60 p-3">
+          {items.map((it) => (
+            <li
+              key={it.item}
+              className={`rounded-xl border p-2.5 ${
+                it.flagged ? "border-rose-200 bg-rose-50/40" : "border-border bg-background/40"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{it.item}</p>
+                  {it.note && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{it.note}</p>
+                  )}
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    it.flagged
+                      ? "bg-danger-soft text-danger"
+                      : "bg-success-soft text-success"
+                  }`}
+                >
+                  {it.flagged ? (
+                    <AlertTriangle className="h-3 w-3" />
+                  ) : (
+                    <CheckCircle2 className="h-3 w-3" />
+                  )}
+                  {it.status}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

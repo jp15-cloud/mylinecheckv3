@@ -10,6 +10,7 @@ import {
 } from "@/lib/lineCheck";
 import { ArrowRight, CheckCircle2, AlertTriangle, Utensils, UserCog } from "lucide-react";
 import { z } from "zod";
+import { SyncStatus } from "@/components/SyncStatus";
 
 const dashSearch = z
   .object({
@@ -111,9 +112,12 @@ function Dashboard() {
       )}
       {/* Hero readiness card */}
       <section className="rounded-3xl border border-border bg-card p-6 lg:p-8">
-        <p className="text-sm text-muted-foreground">
-          {greeting}, <span className="font-medium text-foreground">{name}</span>.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {greeting}, <span className="font-medium text-foreground">{name}</span>.
+          </p>
+          <SyncStatus />
+        </div>
         <p className="mt-1 text-sm">
           You have{" "}
           <span className="font-semibold text-success">{stats.stationsComplete}</span>{" "}
