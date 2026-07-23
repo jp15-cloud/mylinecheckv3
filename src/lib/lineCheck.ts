@@ -16,6 +16,26 @@ export const STATUSES = data.statuses;
 export const STAFF = data.staff;
 export const SECTIONS = data.sections.filter((s) => s.items.length > 0);
 
+/** Composite entry key so same-named items in different groups within a
+ *  station do NOT share status/notes. Legacy entries keyed by bare item name
+ *  are still readable via `readEntry`. */
+export function entryKey(group: string | null | undefined, name: string): string {
+  const g = (group || "").trim();
+  return g ? `${g}\u0001${name}` : name;
+}
+
+/** Read an entry preferring the composite (group+name) key, falling back to
+ *  the legacy bare-name key for data saved before the fix. */
+export function readEntry(
+  entries: SectionState["entries"],
+  group: string | null | undefined,
+  name: string,
+  slot: Slot,
+): Entry | undefined {
+  return entries[entryKey(group, name)]?.[slot] ?? entries[name]?.[slot];
+}
+
+
 /** Custom per-section item struct persisted from the section edit UI. */
 type StructItem = { name: string };
 type StructCat = { group: string; items: StructItem[] };
