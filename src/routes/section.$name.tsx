@@ -930,7 +930,7 @@ function SectionPage() {
                       <button
                         className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-accent"
                         aria-label="More options"
-                        onClick={() => setEntry(item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
+                        onClick={() => setEntry(cat.group, item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
