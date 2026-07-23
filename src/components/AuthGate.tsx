@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { setUserScope } from "@/lib/lsStore";
 import { startSettingsSync, stopSettingsSync } from "@/lib/settingsSync";
