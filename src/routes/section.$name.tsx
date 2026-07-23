@@ -10,6 +10,8 @@ import {
   storageKey,
   FLAG_STATUSES,
   OK_STATUSES,
+  entryKey,
+  readEntry,
   type Entry,
   type SectionState,
   type Slot,
