@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { setUserScope } from "@/lib/lsStore";
 import { startSettingsSync, stopSettingsSync } from "@/lib/settingsSync";
@@ -9,8 +9,8 @@ type AuthStatus = "loading" | "signed-in" | "signed-out";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr });
 
   useEffect(() => {
     let active = true;
@@ -47,9 +47,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "signed-out" && !isPublic) {
-      navigate({ to: "/auth", replace: true });
+      const next = pathname + (searchStr || "");
+      const qs = new URLSearchParams({ next }).toString();
+      window.location.replace(`/auth?${qs}`);
     }
-  }, [status, isPublic, navigate]);
+  }, [status, isPublic, pathname, searchStr]);
 
   if (isPublic) return <>{children}</>;
 
