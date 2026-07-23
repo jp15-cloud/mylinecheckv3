@@ -949,7 +949,7 @@ function SectionPage() {
                           </div>
                           <textarea
                             value={e?.note ?? ""}
-                            onChange={(ev) => setEntry(item.name, { note: ev.target.value })}
+                            onChange={(ev) => setEntry(cat.group, item.name, { note: ev.target.value })}
                             placeholder={`Describe the issue (${status})…`}
                             rows={2}
                             className={`w-full resize-y rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-foreground/40 ${
