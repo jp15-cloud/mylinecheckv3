@@ -16,6 +16,26 @@ export const STATUSES = data.statuses;
 export const STAFF = data.staff;
 export const SECTIONS = data.sections.filter((s) => s.items.length > 0);
 
+/** Composite entry key so same-named items in different groups within a
+ *  station do NOT share status/notes. Legacy entries keyed by bare item name
+ *  are still readable via `readEntry`. */
+export function entryKey(group: string | null | undefined, name: string): string {
+  const g = (group || "").trim();
+  return g ? `${g}\u0001${name}` : name;
+}
+
+/** Read an entry preferring the composite (group+name) key, falling back to
+ *  the legacy bare-name key for data saved before the fix. */
+export function readEntry(
+  entries: SectionState["entries"],
+  group: string | null | undefined,
+  name: string,
+  slot: Slot,
+): Entry | undefined {
+  return entries[entryKey(group, name)]?.[slot] ?? entries[name]?.[slot];
+}
+
+
 /** Custom per-section item struct persisted from the section edit UI. */
 type StructItem = { name: string };
 type StructCat = { group: string; items: StructItem[] };
@@ -48,9 +68,16 @@ export function getStationNames(): string[] {
 
 /** Item names for a station, taking user overrides from Settings + section edits into account. */
 export function getStationItemNames(name: string): string[] {
+  return getStationItems(name).map((i) => i.name);
+}
+
+/** Item {group,name} pairs for a station, taking user overrides into account. */
+export function getStationItems(name: string): Array<{ group: string; name: string }> {
   const struct = loadStruct(name);
   if (struct && struct.length) {
-    return struct.flatMap((c) => c.items.map((i) => i.name)).filter(Boolean);
+    return struct.flatMap((c) =>
+      c.items.map((i) => ({ group: c.group, name: i.name })),
+    ).filter((i) => !!i.name);
   }
   try {
     const raw = lsStore.getItem("linecheck:settings:stations");
@@ -61,17 +88,22 @@ export function getStationItemNames(name: string): string[] {
           (s: { name?: unknown }) => typeof s?.name === "string" && s.name === name,
         );
         if (found && Array.isArray(found.items)) {
-          const names = found.items
-            .map((i: { name?: unknown }) => (typeof i?.name === "string" ? i.name : null))
-            .filter((n: string | null): n is string => !!n);
-          if (names.length) return names;
+          const items = found.items
+            .map((i: { name?: unknown; group?: unknown }) =>
+              typeof i?.name === "string"
+                ? { group: typeof i?.group === "string" ? i.group : "", name: i.name }
+                : null,
+            )
+            .filter((i: { group: string; name: string } | null): i is { group: string; name: string } => !!i);
+          if (items.length) return items;
         }
       }
     }
   } catch {}
   const sec = SECTIONS.find((s) => s.name === name);
-  return sec ? sec.items.map((i) => i.name) : [];
+  return sec ? sec.items.map((i) => ({ group: (i as { group?: string }).group || "", name: i.name })) : [];
 }
+
 
 export const FLAG_STATUSES = new Set([
   "ABOUT TO EXPIRE",
@@ -135,7 +167,7 @@ export function shiftHistory(date: string, slot: Slot): ShiftHistory {
     let allDone = true;
     for (const item of sec.items) {
       totalItems++;
-      const e = state.entries[item.name]?.[slot];
+      const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
       if (e?.status) {
         anyTouched = true;
         checkedItems++;
@@ -180,12 +212,12 @@ export function defaultShift(): Slot {
 }
 
 export function sectionProgress(name: string, slot: Slot, date = todayISO()) {
-  const items = getStationItemNames(name);
+  const items = getStationItems(name);
   const state = loadSection(name, date);
   let done = 0;
   let flagged = 0;
-  for (const itemName of items) {
-    const e = state.entries[itemName]?.[slot];
+  for (const it of items) {
+    const e = readEntry(state.entries, it.group, it.name, slot);
     if (e?.status) done++;
     if (e?.status && FLAG_STATUSES.has(e.status)) flagged++;
   }
@@ -204,7 +236,7 @@ export function allFlagged(slot: Slot, date = todayISO()): FlaggedRow[] {
   for (const sec of SECTIONS) {
     const state = loadSection(sec.name, date);
     for (const item of sec.items) {
-      const e = state.entries[item.name]?.[slot];
+      const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
       if (e?.status && FLAG_STATUSES.has(e.status)) {
         rows.push({ section: sec.name, item: item.name, status: e.status, slot });
       }
@@ -270,7 +302,7 @@ export function dayHistory(date: string): DayHistory {
       const slots: Slot[] = ["op", "mid", "cl"];
       let itemDoneAnyShift = false;
       for (const slot of slots) {
-        const e = state.entries[item.name]?.[slot];
+        const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
         if (e?.status) {
           anyTouched = true;
           itemDoneAnyShift = true;

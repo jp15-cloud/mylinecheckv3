@@ -10,6 +10,8 @@ import {
   storageKey,
   FLAG_STATUSES,
   OK_STATUSES,
+  entryKey,
+  readEntry,
   type Entry,
   type SectionState,
   type Slot,
@@ -251,47 +253,49 @@ function SectionPage() {
   if (!section) return <div className="p-10">Section not found.</div>;
 
   const slot: Slot = shell.shift;
-  const allItems = struct.flatMap((c) => c.items);
+  const allItems = struct.flatMap((c) => c.items.map((i) => ({ group: c.group, name: i.name })));
   const total = allItems.length;
-  const done = allItems.filter((i) => state.entries[i.name]?.[slot]?.status).length;
+  const done = allItems.filter((i) => readEntry(state.entries, i.group, i.name, slot)?.status).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   const missingNotes = allItems.filter((i) => {
-    const e = state.entries[i.name]?.[slot];
+    const e = readEntry(state.entries, i.group, i.name, slot);
     return e?.status && FLAG_STATUSES.has(e.status) && !e.note?.trim();
   });
   const canSave = missingNotes.length === 0;
 
-  const setEntry = (item: string, patch: Partial<Entry>) => {
+  const setEntry = (group: string, name: string, patch: Partial<Entry>) => {
+    const k = entryKey(group, name);
     setState((prev) => ({
       ...prev,
       entries: {
         ...prev.entries,
-        [item]: {
-          op: prev.entries[item]?.op ?? emptyEntry(),
-          mid: prev.entries[item]?.mid ?? emptyEntry(),
-          cl: prev.entries[item]?.cl ?? emptyEntry(),
-          [slot]: { ...(prev.entries[item]?.[slot] ?? emptyEntry()), ...patch },
+        [k]: {
+          op: prev.entries[k]?.op ?? emptyEntry(),
+          mid: prev.entries[k]?.mid ?? emptyEntry(),
+          cl: prev.entries[k]?.cl ?? emptyEntry(),
+          [slot]: { ...(prev.entries[k]?.[slot] ?? emptyEntry()), ...patch },
         },
       },
     }));
   };
 
 
-  const toggleCheck = (item: string) => {
-    const cur = state.entries[item]?.[slot]?.status;
-    setEntry(item, { status: cur === "OK" ? "" : "OK" });
+  const toggleCheck = (group: string, name: string) => {
+    const cur = readEntry(state.entries, group, name, slot)?.status;
+    setEntry(group, name, { status: cur === "OK" ? "" : "OK" });
   };
 
   const markAllOK = () => {
     setState((prev) => {
       const entries = { ...prev.entries };
       for (const it of allItems) {
-        entries[it.name] = {
-          op: entries[it.name]?.op ?? emptyEntry(),
-          mid: entries[it.name]?.mid ?? emptyEntry(),
-          cl: entries[it.name]?.cl ?? emptyEntry(),
-          [slot]: { status: "OK", note: entries[it.name]?.[slot]?.note ?? "" },
+        const k = entryKey(it.group, it.name);
+        entries[k] = {
+          op: entries[k]?.op ?? emptyEntry(),
+          mid: entries[k]?.mid ?? emptyEntry(),
+          cl: entries[k]?.cl ?? emptyEntry(),
+          [slot]: { status: "OK", note: entries[k]?.[slot]?.note ?? "" },
         };
       }
       return { ...prev, entries };
@@ -302,16 +306,18 @@ function SectionPage() {
     setState((prev) => {
       const entries = { ...prev.entries };
       for (const it of allItems) {
-        entries[it.name] = {
-          op: entries[it.name]?.op ?? emptyEntry(),
-          mid: entries[it.name]?.mid ?? emptyEntry(),
-          cl: entries[it.name]?.cl ?? emptyEntry(),
+        const k = entryKey(it.group, it.name);
+        entries[k] = {
+          op: entries[k]?.op ?? emptyEntry(),
+          mid: entries[k]?.mid ?? emptyEntry(),
+          cl: entries[k]?.cl ?? emptyEntry(),
           [slot]: { status: "", note: "" },
         };
       }
       return { ...prev, entries };
     });
   };
+
 
   const saveCheck = () => {
     if (!canSave) return;
@@ -799,7 +805,7 @@ function SectionPage() {
           .map((cat) => {
             const visible = cat.items.filter((item) => {
               if (!flaggedOnly) return true;
-              const s = state.entries[item.name]?.[slot]?.status;
+              const s = readEntry(state.entries, cat.group, item.name, slot)?.status;
               return !!s && FLAG_STATUSES.has(s);
             });
             return [cat, visible] as const;
@@ -839,7 +845,7 @@ function SectionPage() {
 
               <div className="space-y-2">
                 {items.map((item) => {
-                  const e = state.entries[item.name]?.[slot];
+                  const e = readEntry(state.entries, cat.group, item.name, slot);
                   const status = e?.status ?? "";
                   const checked = !!status && OK_STATUSES.has(status);
                   const flagged = status && FLAG_STATUSES.has(status);
@@ -855,7 +861,7 @@ function SectionPage() {
                     >
                       <div className="flex items-center gap-3 px-3 py-2.5">
                       <button
-                        onClick={() => toggleCheck(item.name)}
+                        onClick={() => toggleCheck(cat.group, item.name)}
                         aria-label={checked ? "Uncheck item" : "Mark item OK"}
                         className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border transition ${
                           checked
@@ -897,7 +903,7 @@ function SectionPage() {
                       <div className="relative">
                         <select
                           value={status}
-                          onChange={(ev) => setEntry(item.name, { status: ev.target.value })}
+                          onChange={(ev) => setEntry(cat.group, item.name, { status: ev.target.value })}
                           className={`appearance-none rounded-md border px-2.5 py-1 pr-6 text-[11px] font-semibold uppercase tracking-wide ${
                             status
                               ? STATUS_STYLES[status] ?? "border-border bg-card"
@@ -924,7 +930,7 @@ function SectionPage() {
                       <button
                         className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-accent"
                         aria-label="More options"
-                        onClick={() => setEntry(item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
+                        onClick={() => setEntry(cat.group, item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
@@ -943,7 +949,7 @@ function SectionPage() {
                           </div>
                           <textarea
                             value={e?.note ?? ""}
-                            onChange={(ev) => setEntry(item.name, { note: ev.target.value })}
+                            onChange={(ev) => setEntry(cat.group, item.name, { note: ev.target.value })}
                             placeholder={`Describe the issue (${status})…`}
                             rows={2}
                             className={`w-full resize-y rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-foreground/40 ${
