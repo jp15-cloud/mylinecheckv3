@@ -861,7 +861,7 @@ function SectionPage() {
                     >
                       <div className="flex items-center gap-3 px-3 py-2.5">
                       <button
-                        onClick={() => toggleCheck(item.name)}
+                        onClick={() => toggleCheck(cat.group, item.name)}
                         aria-label={checked ? "Uncheck item" : "Mark item OK"}
                         className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border transition ${
                           checked
