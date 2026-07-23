@@ -805,7 +805,7 @@ function SectionPage() {
           .map((cat) => {
             const visible = cat.items.filter((item) => {
               if (!flaggedOnly) return true;
-              const s = state.entries[item.name]?.[slot]?.status;
+              const s = readEntry(state.entries, cat.group, item.name, slot)?.status;
               return !!s && FLAG_STATUSES.has(s);
             });
             return [cat, visible] as const;
