@@ -212,12 +212,12 @@ export function defaultShift(): Slot {
 }
 
 export function sectionProgress(name: string, slot: Slot, date = todayISO()) {
-  const items = getStationItemNames(name);
+  const items = getStationItems(name);
   const state = loadSection(name, date);
   let done = 0;
   let flagged = 0;
-  for (const itemName of items) {
-    const e = state.entries[itemName]?.[slot];
+  for (const it of items) {
+    const e = readEntry(state.entries, it.group, it.name, slot);
     if (e?.status) done++;
     if (e?.status && FLAG_STATUSES.has(e.status)) flagged++;
   }
