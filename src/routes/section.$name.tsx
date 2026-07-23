@@ -845,7 +845,7 @@ function SectionPage() {
 
               <div className="space-y-2">
                 {items.map((item) => {
-                  const e = state.entries[item.name]?.[slot];
+                  const e = readEntry(state.entries, cat.group, item.name, slot);
                   const status = e?.status ?? "";
                   const checked = !!status && OK_STATUSES.has(status);
                   const flagged = status && FLAG_STATUSES.has(status);
