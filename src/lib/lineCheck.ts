@@ -68,9 +68,16 @@ export function getStationNames(): string[] {
 
 /** Item names for a station, taking user overrides from Settings + section edits into account. */
 export function getStationItemNames(name: string): string[] {
+  return getStationItems(name).map((i) => i.name);
+}
+
+/** Item {group,name} pairs for a station, taking user overrides into account. */
+export function getStationItems(name: string): Array<{ group: string; name: string }> {
   const struct = loadStruct(name);
   if (struct && struct.length) {
-    return struct.flatMap((c) => c.items.map((i) => i.name)).filter(Boolean);
+    return struct.flatMap((c) =>
+      c.items.map((i) => ({ group: c.group, name: i.name })),
+    ).filter((i) => !!i.name);
   }
   try {
     const raw = lsStore.getItem("linecheck:settings:stations");
@@ -81,17 +88,22 @@ export function getStationItemNames(name: string): string[] {
           (s: { name?: unknown }) => typeof s?.name === "string" && s.name === name,
         );
         if (found && Array.isArray(found.items)) {
-          const names = found.items
-            .map((i: { name?: unknown }) => (typeof i?.name === "string" ? i.name : null))
-            .filter((n: string | null): n is string => !!n);
-          if (names.length) return names;
+          const items = found.items
+            .map((i: { name?: unknown; group?: unknown }) =>
+              typeof i?.name === "string"
+                ? { group: typeof i?.group === "string" ? i.group : "", name: i.name }
+                : null,
+            )
+            .filter((i: { group: string; name: string } | null): i is { group: string; name: string } => !!i);
+          if (items.length) return items;
         }
       }
     }
   } catch {}
   const sec = SECTIONS.find((s) => s.name === name);
-  return sec ? sec.items.map((i) => i.name) : [];
+  return sec ? sec.items.map((i) => ({ group: (i as { group?: string }).group || "", name: i.name })) : [];
 }
+
 
 export const FLAG_STATUSES = new Set([
   "ABOUT TO EXPIRE",
