@@ -167,7 +167,7 @@ export function shiftHistory(date: string, slot: Slot): ShiftHistory {
     let allDone = true;
     for (const item of sec.items) {
       totalItems++;
-      const e = state.entries[item.name]?.[slot];
+      const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
       if (e?.status) {
         anyTouched = true;
         checkedItems++;
