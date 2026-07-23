@@ -903,7 +903,7 @@ function SectionPage() {
                       <div className="relative">
                         <select
                           value={status}
-                          onChange={(ev) => setEntry(item.name, { status: ev.target.value })}
+                          onChange={(ev) => setEntry(cat.group, item.name, { status: ev.target.value })}
                           className={`appearance-none rounded-md border px-2.5 py-1 pr-6 text-[11px] font-semibold uppercase tracking-wide ${
                             status
                               ? STATUS_STYLES[status] ?? "border-border bg-card"
