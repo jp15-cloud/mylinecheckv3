@@ -302,7 +302,7 @@ export function dayHistory(date: string): DayHistory {
       const slots: Slot[] = ["op", "mid", "cl"];
       let itemDoneAnyShift = false;
       for (const slot of slots) {
-        const e = state.entries[item.name]?.[slot];
+        const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
         if (e?.status) {
           anyTouched = true;
           itemDoneAnyShift = true;
