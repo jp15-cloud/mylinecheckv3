@@ -236,7 +236,7 @@ export function allFlagged(slot: Slot, date = todayISO()): FlaggedRow[] {
   for (const sec of SECTIONS) {
     const state = loadSection(sec.name, date);
     for (const item of sec.items) {
-      const e = state.entries[item.name]?.[slot];
+      const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
       if (e?.status && FLAG_STATUSES.has(e.status)) {
         rows.push({ section: sec.name, item: item.name, status: e.status, slot });
       }
