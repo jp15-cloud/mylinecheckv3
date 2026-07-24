@@ -403,7 +403,16 @@ function StationsPanel() {
                 />
 
                 <Icon className="h-4 w-4 text-muted-foreground" />
-                <span className="font-bold tracking-tight">{st.name}</span>
+                <input
+                  value={st.name}
+                  onChange={(e) =>
+                    setStations((s) =>
+                      s.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)),
+                    )
+                  }
+                  className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm font-bold tracking-tight outline-none hover:border-border focus:border-foreground/30 focus:bg-background"
+                  aria-label="Station name"
+                />
 
 
                 <span className="ml-auto text-xs text-muted-foreground">
@@ -424,13 +433,28 @@ function StationsPanel() {
                   {st.items.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No items yet.</p>
                   ) : (
-                    <ul className="grid grid-cols-2 gap-1.5 text-xs">
-                      {st.items.map((it) => (
-                        <li
-                          key={it.name}
-                          className="rounded-md bg-muted/50 px-2 py-1 text-muted-foreground"
-                        >
-                          {it.name}
+                    <ul className="space-y-1.5 text-xs">
+                      {st.items.map((it, ii) => (
+                        <li key={ii} className="flex items-center gap-2">
+                          <input
+                            value={it.name}
+                            onChange={(e) =>
+                              setStations((s) =>
+                                s.map((x, i) =>
+                                  i === idx
+                                    ? {
+                                        ...x,
+                                        items: x.items.map((y, j) =>
+                                          j === ii ? { ...y, name: e.target.value } : y,
+                                        ),
+                                      }
+                                    : x,
+                                ),
+                              )
+                            }
+                            className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:border-foreground/30"
+                            aria-label="Item name"
+                          />
                         </li>
                       ))}
                     </ul>
@@ -444,6 +468,7 @@ function StationsPanel() {
     </div>
   );
 }
+
 
 /* ============= ICON PICKER ============= */
 

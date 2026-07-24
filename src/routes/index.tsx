@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, useShellState, SECTION_ICONS } from "@/components/AppShell";
 import {
-  SECTIONS,
+  getStationNames,
   allFlagged,
   sectionProgress,
   type FlaggedRow,
   type Slot,
 } from "@/lib/lineCheck";
+
 import { ArrowRight, CheckCircle2, AlertTriangle, Utensils, UserCog } from "lucide-react";
 import { z } from "zod";
 import { SyncStatus } from "@/components/SyncStatus";
@@ -68,14 +69,15 @@ function Dashboard() {
     let checkedItems = 0;
     let stationsComplete = 0;
     const perStation: { name: string; done: number; total: number; pct: number }[] = [];
-    for (const s of SECTIONS) {
-      const { done, total } = sectionProgress(s.name, shell.shift, shell.date);
+    for (const stationName of getStationNames()) {
+      const { done, total } = sectionProgress(stationName, shell.shift, shell.date);
       totalItems += total;
       checkedItems += done;
       const pct = total ? Math.round((done / total) * 100) : 0;
       if (total > 0 && done === total) stationsComplete++;
-      perStation.push({ name: s.name, done, total, pct });
+      perStation.push({ name: stationName, done, total, pct });
     }
+
     const flagged: FlaggedRow[] = allFlagged(shell.shift, shell.date);
     const readiness = totalItems ? Math.round((checkedItems / totalItems) * 100) : 0;
     return {
