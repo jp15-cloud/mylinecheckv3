@@ -299,16 +299,18 @@ export function dayHistory(date: string): DayHistory {
   let flagged = 0;
   let totalItems = 0;
   let checkedItems = 0;
-  for (const sec of SECTIONS) {
-    const state = loadSection(sec.name, date);
+  for (const stationName of getStationNames()) {
+    const items = getStationItems(stationName);
+    if (items.length === 0) continue;
+    const state = loadSection(stationName, date);
     let anyTouched = false;
     let allDone = true;
-    for (const item of sec.items) {
+    for (const item of items) {
       totalItems++;
       const slots: Slot[] = ["op", "mid", "cl"];
       let itemDoneAnyShift = false;
       for (const slot of slots) {
-        const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
+        const e = readEntry(state.entries, item.group, item.name, slot);
         if (e?.status) {
           anyTouched = true;
           itemDoneAnyShift = true;
@@ -319,7 +321,8 @@ export function dayHistory(date: string): DayHistory {
       else allDone = false;
     }
     if (anyTouched) stationsTouched++;
-    if (anyTouched && allDone && sec.items.length > 0) stationsComplete++;
+    if (anyTouched && allDone) stationsComplete++;
   }
   return { date, stationsTouched, stationsComplete, flagged, totalItems, checkedItems };
 }
+
