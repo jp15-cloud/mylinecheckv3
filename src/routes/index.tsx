@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, useShellState, SECTION_ICONS } from "@/components/AppShell";
 import {
-  SECTIONS,
+  getStationNames,
   allFlagged,
   sectionProgress,
   type FlaggedRow,
   type Slot,
 } from "@/lib/lineCheck";
+
 import { ArrowRight, CheckCircle2, AlertTriangle, Utensils, UserCog } from "lucide-react";
 import { z } from "zod";
 import { SyncStatus } from "@/components/SyncStatus";
