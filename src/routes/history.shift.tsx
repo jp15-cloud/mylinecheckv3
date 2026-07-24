@@ -85,22 +85,25 @@ function ShiftDetail() {
       flagged: boolean;
     };
     const out: { section: string; items: Row[] }[] = [];
-    for (const sec of SECTIONS) {
-      const state = loadSection(sec.name, date);
+    for (const stationName of getStationNames()) {
+      const stationItems = getStationItems(stationName);
+      if (stationItems.length === 0) continue;
+      const state = loadSection(stationName, date);
       const items: Row[] = [];
-      for (const it of sec.items) {
-        const e = state.entries[it.name]?.[shift];
+      for (const it of stationItems) {
+        const e = readEntry(state.entries, it.group, it.name, shift);
         if (!e?.status) continue;
         items.push({
-          section: sec.name,
+          section: stationName,
           item: it.name,
           status: e.status,
           note: e.note || "",
           flagged: FLAG_STATUSES.has(e.status),
         });
       }
-      if (items.length) out.push({ section: sec.name, items });
+      if (items.length) out.push({ section: stationName, items });
     }
+
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, shift, tick]);
