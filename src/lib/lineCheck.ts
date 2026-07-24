@@ -236,17 +236,20 @@ export type FlaggedRow = {
 
 export function allFlagged(slot: Slot, date = todayISO()): FlaggedRow[] {
   const rows: FlaggedRow[] = [];
-  for (const sec of SECTIONS) {
-    const state = loadSection(sec.name, date);
-    for (const item of sec.items) {
-      const e = readEntry(state.entries, (item as { group?: string }).group, item.name, slot);
+  for (const stationName of getStationNames()) {
+    const items = getStationItems(stationName);
+    if (items.length === 0) continue;
+    const state = loadSection(stationName, date);
+    for (const item of items) {
+      const e = readEntry(state.entries, item.group, item.name, slot);
       if (e?.status && FLAG_STATUSES.has(e.status)) {
-        rows.push({ section: sec.name, item: item.name, status: e.status, slot });
+        rows.push({ section: stationName, item: item.name, status: e.status, slot });
       }
     }
   }
   return rows;
 }
+
 
 export type DayHistory = {
   date: string;
