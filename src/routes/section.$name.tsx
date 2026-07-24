@@ -133,8 +133,24 @@ function buildDefaultStruct(section: { items: Array<{ name: string; group?: stri
 function SectionPage() {
   const { name } = Route.useParams();
   const search = Route.useSearch() as { date?: string; shift?: Slot };
-  const section = SECTIONS.find((s) => s.name === name);
+  const knownStations = getStationNames();
+  const stationExists = knownStations.includes(name);
+  const section =
+    SECTIONS.find((s) => s.name === name) ??
+    (stationExists
+      ? {
+          name,
+          items: getStationItems(name).map((i) => ({
+            name: i.name,
+            group: i.group,
+            quality: "",
+            shelf: "",
+            container: "",
+          })),
+        }
+      : undefined);
   const shell = useShellState(name);
+
 
   // Sync shell to search params when reopening a past shift from history.
   useEffect(() => {
